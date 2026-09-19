@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="tg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>КУЛБА — Ҳисоби мизоҷ</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCZ4qGk2rw_-VFyMQBYMbErkSotcKMKTyg",
+            authDomain: "kulba-2252c.firebaseapp.com",
+            projectId: "kulba-2252c",
+            storageBucket: "kulba-2252c.firebasestorage.app",
+            messagingSenderId: "656023002481",
+            appId: "1:656023002481:web:b274139e1017376c70aad0"
+        };
+
+        const fbApp = initializeApp(firebaseConfig);
+        const fbDB = getFirestore(fbApp);
+        const DOC_REF = doc(fbDB, 'kulba', 'main');
+
+        window.__fb = { getDoc, onSnapshot, docRef: DOC_REF };
+        window.__fbReady = true;
+        window.dispatchEvent(new Event('firebase-ready'));
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px;
+            text-align: center;
+        }
+        .header-title { font-size: 28px; font-weight: 700; margin-bottom: 6px; }
+        .header-desc { font-size: 13px; opacity: 0.9; }
+        .content { padding: 24px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 14px; font-weight: 600; color: #333; margin-bottom: 8px; }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus { outline: none; border-color: #667eea; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5568d3; }
+        .btn-primary:active { transform: scale(0.98); }
+        .empty-state { text-align: center; padding: 40px 20px; color: #999; }
+        .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
+        .empty-state-text { font-size: 14px; }
+        .account-header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #f0f0f0; padding-bottom: 16px; }
+        .phone-display { font-size: 18px; font-weight: 600; color: #333; margin-bottom: 4px; }
+        .back-btn { background: #f5f5f5; color: #333; margin-bottom: 16px; }
+        .back-btn:hover { background: #efefef; }
+        .stat-card { background: #f5f7fa; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+        .stat-label { font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-value { font-size: 24px; font-weight: 700; color: #667eea; margin-top: 4px; }
+        .vip-card { background: linear-gradient(135deg, #fffbf0 0%, #ffe9a8 100%); border-radius: 12px; padding: 16px; margin-bottom: 12px; border: 2px solid #ffd700; }
+        .vip-badge { font-size: 14px; font-weight: 600; color: #c99a1a; margin-bottom: 8px; }
+        .vip-value { font-size: 20px; font-weight: 700; color: #c99a1a; }
+        .purchase-list { margin-top: 20px; }
+        .purchase-header { font-size: 14px; font-weight: 600; color: #555; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .purchase-item { background: #f9f9f9; border-radius: 8px; padding: 12px; margin-bottom: 8px; border-left: 4px solid #667eea; }
+        .purchase-product { font-weight: 600; color: #333; font-size: 14px; margin-bottom: 4px; }
+        .purchase-details { font-size: 12px; color: #999; line-height: 1.5; }
+        .purchase-bonus { font-size: 12px; color: #c99a1a; margin-top: 4px; font-weight: 600; }
+        .alert { padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 13px; }
+        .alert-error { background: #ffebee; color: #c62828; }
+        .alert-info { background: #e3f2fd; color: #1565c0; }
+        .loading { text-align: center; padding: 20px; color: #667eea; }
+        .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-title">🏪 КУЛБА</div>
+            <div class="header-desc">Ҳисоби мизоҷ</div>
+        </div>
+        <div class="content" id="mainContent">
+            <div class="form-group">
+                <label>📱 Рақами телефон</label>
+                <input type="tel" id="phoneInput" placeholder="901234567 ё +992..." maxlength="20">
+            </div>
+            <button class="btn btn-primary" onclick="searchClient()">🔍 Ҳисобро пеида кунед</button>
+        </div>
+    </div>
+
+    <script>
+        const VIP_BONUS_RATE = 0.002; // 0.2%
+        let dbData = null;
+
+        // Format helpers
+        function formatPrice(num) {
+            if (!num) return '0';
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        }
+        function formatDate(d) {
+            const dt = new Date(d);
+            const days = ['Яш', 'Дш', 'Сш', 'Чш', 'Пш', 'Ҷм', 'Шн'];
+            return `${dt.getDate().toString().padStart(2, '0')}.${(dt.getMonth()+1).toString().padStart(2, '0')}.${dt.getFullYear()} ${days[dt.getDay()]}`;
+        }
+        function normalizePhone(p) {
+            return p.replace(/\D/g, '');
+        }
+
+        // Fetch DB data from Firebase on load
+        window.addEventListener('firebase-ready', () => {
+            if (!window.__fbReady) return;
+            const { getDoc, docRef } = window.__fb;
+            getDoc(docRef).then(snap => {
+                if (snap.exists()) dbData = snap.data();
+                setupRealtimeListener();
+            }).catch(() => setupRealtimeListener());
+        });
+
+        function setupRealtimeListener() {
+            if (!window.__fbReady) return;
+            const { onSnapshot, docRef } = window.__fb;
+            onSnapshot(docRef, snap => {
+                if (snap.exists()) dbData = snap.data();
+            }, () => {});
+        }
+
+        function searchClient() {
+            const phoneInput = document.getElementById('phoneInput').value.trim();
+            if (!phoneInput) {
+                alert('Рақами телефонро ворид кунед');
+                return;
+            }
+            const normalized = normalizePhone(phoneInput);
+            if (normalized.length < 5) {
+                alert('Рақами телефон намеҳои ним');
+                return;
+            }
+
+            if (!dbData) {
+                alert('Маълумот ҳанӯз нашуд. Лутфан баъдатар кӯшиш кунед.');
+                return;
+            }
+
+            // Primary match: the dedicated clientPhone field stored on each sale line
+            let sales = (dbData.sales || []).filter(s => {
+                const p = normalizePhone(s.clientPhone || '');
+                return p && (p.includes(normalized) || normalized.includes(p.slice(-9)));
+            });
+            let clientName = sales[0]?.client || null;
+
+            // Fallback: match via debts.phone, then pull all sales under that client's name
+            if (!clientName) {
+                const debtMatch = (dbData.debts || []).find(d => {
+                    const p = normalizePhone(d.phone || '');
+                    return p && (p.includes(normalized) || normalized.includes(p.slice(-9)));
+                });
+                if (debtMatch) {
+                    clientName = debtMatch.name;
+                    sales = (dbData.sales || []).filter(s => (s.client || '').trim().toLowerCase() === clientName.trim().toLowerCase());
+                }
+            }
+
+            if (!clientName && sales.length === 0) {
+                alert('Ҳисоби аз ин рақам ёфт нашуд.');
+                return;
+            }
+
+            showAccount(sales, clientName || 'Маълум нест');
+        }
+
+        function showAccount(sales, clientName) {
+            const totalSpent = sales.reduce((s, x) => s + (x.total || 0), 0);
+            const vip = dbData.vipClients && dbData.vipClients.some(v => v.trim().toLowerCase() === clientName.trim().toLowerCase());
+            const totalBonus = vip ? totalSpent * VIP_BONUS_RATE : 0;
+
+            let html = `
+                <button class="btn back-btn" onclick="location.reload()">← Қайтиш</button>
+                <div class="account-header">
+                    <div class="phone-display">${vip ? '⭐ ' : ''}${clientName}</div>
+                    <div style="font-size:12px;color:#999">Ҳамагӣ ${sales.length} харид</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">💳 Маблағи умумии хариди</div>
+                    <div class="stat-value">${formatPrice(totalSpent)} TJS</div>
+                </div>`;
+
+            if (vip) {
+                html += `
+                <div class="vip-card">
+                    <div class="vip-badge">⭐ Бонуси VIP (0.2%)</div>
+                    <div class="vip-value">${formatPrice(totalBonus)} TJS</div>
+                    <div style="font-size:11px;color:#c99a1a;margin-top:6px">Барои ҳамаи харидҳо ҷамъшуда</div>
+                </div>`;
+            }
+
+            if (sales.length > 0) {
+                html += '<div class="purchase-list"><div class="purchase-header">📜 Таърихи харид</div>';
+                sales.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(s => {
+                    const bonus = vip ? s.total * VIP_BONUS_RATE : 0;
+                    html += `
+                    <div class="purchase-item">
+                        <div class="purchase-product">${s.product}</div>
+                        <div class="purchase-details">
+                            📊 ${s.qty} ${s.unit || 'шт'} × ${formatPrice(s.price)} TJS = <strong>${formatPrice(s.total)} TJS</strong><br>
+                            📅 ${formatDate(s.date)}
+                        </div>
+                        ${bonus > 0 ? `<div class="purchase-bonus">⭐ Бонус: ${formatPrice(bonus)} TJS</div>` : ''}
+                    </div>`;
+                });
+                html += '</div>';
+            } else {
+                html += '<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">Ҳанӯз ҳеҷ харид нест</div></div>';
+            }
+
+            document.getElementById('mainContent').innerHTML = html;
+        }
+
+        // Auto-submit on Enter key
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && document.getElementById('phoneInput')) {
+                searchClient();
+            }
+        });
+    </script>
+</body>
+</html>
