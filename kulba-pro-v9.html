@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="tg"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#667eea">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#667eea"><meta name="apple-mobile-web-app-title" content="КУЛБА">
 <title>КУЛБА Pro</title>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -57,7 +57,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div id="login"><div class="lb"><div style="font-size:40px">🏪</div><h1>КУЛБА Pro</h1><p id="lsub">Системаи ҳисобкитоб</p>
 <input type="password" id="lp" placeholder="Рамз" autocomplete="current-password"><button class="b" onclick="doLogin()">Ворид шудан</button><button class="b g" onclick="doCreate()" style="font-size:12px">Бори аввал? Сохтани ҳисоб бо ҳамин рамз</button><div id="lerr"></div></div></div>
 <div id="app">
-<div class="hd"><div class="ht"><b>🏪 КУЛБА Pro</b><div><button onclick="openRep()">📊</button><button onclick="openSet()">⚙️</button><button onclick="logout()">⏻</button></div></div>
+<div class="hd"><div class="ht"><b>🏪 КУЛБА Pro <small id="dot" style="font-size:12px"></small></b><div><button onclick="openRep()">📊</button><button onclick="openSet()">⚙️</button><button onclick="logout()">⏻</button></div></div>
 <div class="st"><div>Анбор<b id="h1">0</b></div><div>Фуруш<b id="h2">0</b></div><div>Фоида<b id="h3">0</b></div><div>Қарз<b id="h4">0</b></div></div></div>
 <div class="tn">
 <button class="tb on" onclick="tab('d',this)"><span>📊</span>Асосӣ</button>
@@ -89,6 +89,11 @@ const pend=()=>{try{return localStorage.getItem('k9p')==='1'}catch(e){return fal
 function idb(cb){try{const r=indexedDB.open('kulba9',1);r.onupgradeneeded=()=>r.result.createObjectStore('s');r.onsuccess=()=>cb(r.result);r.onerror=()=>cb(null)}catch(e){cb(null)}}
 const idbPut=(k,v)=>idb(d=>{if(d)try{d.transaction('s','readwrite').objectStore('s').put(v,k)}catch(e){}});
 const idbGet=k=>new Promise(r=>idb(d=>{if(!d)return r(null);try{const q=d.transaction('s').objectStore('s').get(k);q.onsuccess=()=>r(q.result||null);q.onerror=()=>r(null)}catch(e){r(null)}}));
+/* фишурдан (gzip) — ҳуҷҷати Firestore аз 1 МБ намегузарад */
+async function enc(j){try{if(window.CompressionStream&&window.DecompressionStream){const buf=new Uint8Array(await new Response(new Blob([j]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());let b='';for(let i=0;i<buf.length;i+=8192)b+=String.fromCharCode.apply(null,buf.subarray(i,i+8192));return 'gz:'+btoa(b)}}catch(e){}return j}
+async function dec(p){if(p.slice(0,3)!=='gz:')return p;if(!window.DecompressionStream)throw new Error('nodecomp');const bin=atob(p.slice(3)),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('gzip'))).text()}
+const mkey=x=>x.id||x.k||JSON.stringify(x);
+function merge(a,b){const o={};Object.keys(DB).forEach(k=>{const m=new Map();(a[k]||[]).forEach(x=>m.set(mkey(x),x));(b[k]||[]).forEach(x=>m.set(mkey(x),x));o[k]=[...m.values()]});return o}
 function save(){
  if(!loaded)return;
  if(last>=10&&cnt()<last*.5){toast('⛔ Захира қатъ шуд: маълумот ногаҳон кам шуд. Саҳифаро нав кунед','err');return}
@@ -96,35 +101,48 @@ function save(){
  try{localStorage.setItem('kulba9',j)}catch(e){}
  idbPut('latest',j);
  if(Date.now()-snapAt>300000&&cnt()){snapAt=Date.now();snapN=(snapN+1)%3;idbPut('snap'+snapN,j)}
- if(!window.__fb){setPend(1);ind();return}
+ setPend(1);
+ if(!window.__fb){ind();return}
  if(busy){queued=true;return}
  busy=true;
- __fb.setDoc(__fb.ref,{payload:j,s:SID,t:Date.now()}).then(()=>{online=true;setPend(0);last=cnt();
-  if(Date.now()-lastBk>1800000&&cnt()){lastBk=Date.now();__fb.setDoc(__fb.bk('v9day'+new Date().getDay()),{payload:j,t:Date.now()}).catch(()=>{})}})
- .catch(()=>{online=false;setPend(1);toast('⚠️ Сервер дастрас нест — маълумот дар дастгоҳ нигоҳ дошта шуд','err')})
- .finally(()=>{busy=false;ind();if(queued){queued=false;save()}});
+ const tm=setTimeout(()=>{online=false;ind()},8000);
+ enc(j).then(p=>{if(p.length>950000)throw new Error('big');return __fb.setDoc(__fb.ref,{payload:p,s:SID,t:Date.now()}).then(()=>p)})
+ .then(p=>{online=true;if(!queued)setPend(0);last=cnt();
+  if(Date.now()-lastBk>1800000&&cnt()){lastBk=Date.now();__fb.setDoc(__fb.bk('v9day'+new Date().getDay()),{payload:p,t:Date.now()}).catch(()=>{})}})
+ .catch(e=>{online=false;toast(e&&e.message==='big'?'⚠️ Ҳаҷми маълумот аз ҳадди сервер зиёд шуд — «Резервӣ JSON» гиред ва ба мутахассис хабар диҳед':'⚠️ Сервер дастрас нест — маълумот дар дастгоҳ нигоҳ дошта шуд','err')})
+ .finally(()=>{clearTimeout(tm);busy=false;ind();if(queued){queued=false;save()}});
 }
 async function load(){
- let j=null;try{j=localStorage.getItem('kulba9')||localStorage.getItem('kulba7')||localStorage.getItem('kulba6')}catch(e){}
+ let j=null,legacy=false;
+ try{j=localStorage.getItem('kulba9');if(!j){j=localStorage.getItem('kulba7')||localStorage.getItem('kulba6');legacy=!!j}}catch(e){}
  if(!j)j=await idbGet('latest');
  if(j)try{Object.assign(DB,JSON.parse(j))}catch(e){}
  fix();
- if(!window.__fb){loaded=true;last=cnt();setPend(1);ind();return}
+ if(legacy&&cnt()>0)setPend(1);
+ if(!window.__fb){loaded=true;last=cnt();ind();return}
  try{
   const s=await __fb.getDoc(__fb.ref);
-  const rd=s.exists()&&s.data().payload?JSON.parse(s.data().payload):null;
-  if(rd&&!(cnt()>0&&(pend()||cnt(rd)===0))){Object.assign(DB,rd);fix();last=cnt()}
+  const raw=s.exists()?s.data().payload:null;
+  const rd=raw?JSON.parse(await dec(raw)):null;
+  if(rd&&cnt(rd)>0&&cnt()>0&&pend()){
+   await __fb.setDoc(__fb.bk('conflict'),{payload:raw,t:Date.now()}).catch(()=>{});
+   Object.assign(DB,merge(rd,DB));fix();last=cnt();loaded=true;save();
+  }else if(rd&&cnt(rd)>0){Object.assign(DB,rd);fix();last=cnt()}
   else if(cnt()>0){last=cnt();loaded=true;save()}
   loaded=true;online=true;
-  __fb.onSnapshot(__fb.ref,sn=>{
+  __fb.onSnapshot(__fb.ref,async sn=>{
    if(!sn.exists())return;const r=sn.data();if(!r||!r.payload||r.s===SID)return;
-   try{const d=JSON.parse(r.payload);if(cnt(d)===0&&cnt()>0)return;Object.assign(DB,d);fix();last=cnt();
-    try{localStorage.setItem('kulba9',r.payload)}catch(e){}renderAll();toast('🔄 Маълумот аз дастгоҳи дигар нав шуд')}catch(e){}
+   try{const d=JSON.parse(await dec(r.payload));if(cnt(d)===0&&cnt()>0)return;
+    Object.assign(DB,pend()?merge(d,DB):d);fix();last=cnt();
+    try{localStorage.setItem('kulba9',JSON.stringify(DB))}catch(e){}renderAll();toast('🔄 Маълумот аз дастгоҳи дигар нав шуд')}catch(e){}
   },()=>{online=false;ind()});
- }catch(e){loaded=true;last=cnt();setPend(1);toast('⚠️ Интернет нест ё Firestore иҷозат намедиҳад — маълумот дар дастгоҳ нигоҳ дошта мешавад','err')}
+ }catch(e){
+  if(e&&e.message==='nodecomp'){toast('⛔ Safari-и шумо кӯҳна аст (лозим iOS 16.4+). Захира қатъ шуд, то маълумот вайрон нашавад','err');ind();return}
+  loaded=true;last=cnt();toast('⚠️ Интернет нест ё Firestore иҷозат намедиҳад — маълумот дар дастгоҳ нигоҳ дошта мешавад','err')}
  ind();
 }
-function ind(){const e=$('ind');if(e)e.textContent=online?'🟢 Онлайн — ҳамзамонӣ фаъол':'🟡 Офлайн — дар дастгоҳ нигоҳ дошта мешавад'}
+addEventListener('online',()=>{if(loaded&&pend())save()});
+function ind(){const e=$('ind'),d=$('dot');if(d)d.textContent=online?'🟢':'🟡';if(e)e.textContent=online?'🟢 Онлайн — ҳамзамонӣ фаъол':'🟡 Офлайн — дар дастгоҳ нигоҳ дошта мешавад'}
 /* ===== ВОРИДШАВӣ (Firebase Authentication) ===== */
 const fbWait=()=>new Promise(r=>{if(window.__au)return r();addEventListener('fbready',r,{once:true});setTimeout(r,8000)});
 let started=false;
@@ -181,23 +199,28 @@ function addCart(){
  cart.push({inv:x.id,name:x.name,unit:x.unit,qty:q,price:p,cost:x.cost});$('sq').value='';rCart();
 }
 let sitD=false;
-function rCart(){$('cl').innerHTML=cart.map((c,i)=>'<div class="r"><span>'+esc(c.name)+' × '+c.qty+' '+c.unit+'</span><span>'+fmt(c.qty*c.price)+' <a onclick="cart.splice('+i+',1);rCart()" style="color:#ef5350">✕</a></span></div>').join('')+(cart.length?'<div class="r"><b>Ҷамъ:</b><b>'+fmt(sum(cart,c=>c.qty*c.price))+' TJS</b></div>':'');if(!sitD)$('sit').value=cart.length?Math.round(sum(cart,c=>c.qty*c.price)*100)/100:''}
+function rCart(){sitD=false;$('cl').innerHTML=cart.map((c,i)=>'<div class="r"><span>'+esc(c.name)+' × '+c.qty+' '+c.unit+'</span><span>'+fmt(c.qty*c.price)+' <a onclick="cart.splice('+i+',1);rCart()" style="color:#ef5350">✕</a></span></div>').join('')+(cart.length?'<div class="r"><b>Ҷамъ:</b><b>'+fmt(sum(cart,c=>c.qty*c.price))+' TJS</b></div>':'');if(!sitD)$('sit').value=cart.length?Math.round(sum(cart,c=>c.qty*c.price)*100)/100:''}
 function confirmSale(){
  if(!cart.length){toast('Сабад холӣ аст','err');return}
- const raw=sum(cart,c=>c.qty*c.price),itv=$('sit').value;let tot=raw;if(itv!==''&&parseFloat(itv)>=0){tot=parseFloat(itv);if(raw>0)cart.forEach(c=>c.price*=tot/raw)}const m=$('spm').value,name=$('sc').value.trim(),ph=$('sph').value.trim();
- let paid=m==='cash'?tot:m==='debt'?0:Math.min(Math.max(parseFloat($('sca').value)||0,0),tot);
- const dbt=tot-paid;
+ const raw=sum(cart,c=>c.qty*c.price),itv=$('sit').value;let tot=raw;
+ if(itv!==''){const t=parseFloat(itv);if(!(t>=0)){toast('Итогро дуруст ворид кунед','err');return}tot=t}
+ const m=$('spm').value,name=$('sc').value.trim(),ph=$('sph').value.trim();
+ const paid=m==='cash'?tot:m==='debt'?0:Math.min(Math.max(parseFloat($('sca').value)||0,0),tot);
+ const dbt=Math.round((tot-paid)*100)/100;
  if(dbt>0&&!name){toast('Барои қарз номи мизоҷро ворид кунед','err');return}
- const ord=uid(),now=new Date().toISOString();
- cart.forEach(c=>{const x=DB.inventory.find(i=>i.id===c.inv);if(x)x.qty=Math.round((x.qty-c.qty)*1000)/1000;
-  DB.sales.push({id:uid(),order:ord,date:now,client:name,phone:ph,name:c.name,unit:c.unit,qty:c.qty,price:c.price,cost:c.cost})});
+ for(const c of cart){const x=DB.inventory.find(i=>i.id===c.inv);if(!x||sum(cart.filter(z=>z.inv===c.inv),z=>z.qty)>x.qty){toast('Дар анбор барои «'+c.name+'» кофӣ нест','err');return}}
+ const tq=sum(cart,c=>c.qty),ord=uid(),now=new Date().toISOString();
+ cart.forEach((c,i)=>{const x=DB.inventory.find(z=>z.id===c.inv);x.qty=Math.round((x.qty-c.qty)*1000)/1000;
+  DB.sales.push({id:uid(),order:ord,date:now,client:name,phone:ph,inv:c.inv,name:c.name,unit:c.unit,qty:c.qty,price:raw>0?c.price*tot/raw:tot/tq,cost:c.cost,dbt:i===0?dbt:0})});
  if(dbt>0){let d=DB.debts.find(x=>x.amount>0&&x.name.toLowerCase()===name.toLowerCase());
-  if(d){d.amount+=dbt;d.hist.push({d:now,a:dbt,t:'+'})}else DB.debts.push({id:uid(),name,phone:ph,amount:dbt,date:now,hist:[{d:now,a:dbt,t:'+'}]})}
+  if(d){d.amount+=dbt;if(ph&&!d.phone)d.phone=ph;d.hist.push({d:now,a:dbt,t:'+'})}else DB.debts.push({id:uid(),name,phone:ph,amount:dbt,date:now,hist:[{d:now,a:dbt,t:'+'}]})}
  closeM();save();renderAll();toast('✅ Фурӯш сабт шуд: '+fmt(tot)+' TJS');
 }
 function delSale(o){
- if(!confirm('Ин фурӯшро нест кунед? Мол ба анбор бармегардад (қарзи мизоҷ тағир намеёбад).'))return;
- DB.sales.filter(s=>s.order===o).forEach(s=>{const x=DB.inventory.find(i=>i.name===s.name);if(x)x.qty+=s.qty});
+ const L=DB.sales.filter(s=>s.order===o);if(!L.length)return;const dbt=sum(L,s=>s.dbt||0);
+ if(!confirm('Ин фурӯшро нест кунед? Мол ба анбор бармегардад'+(dbt>0?' ва қарзи '+fmt(dbt)+' TJS аз мизоҷ кам мешавад':'')+'.'))return;
+ L.forEach(s=>{const x=DB.inventory.find(i=>i.id===s.inv)||DB.inventory.find(i=>i.name===s.name);if(x)x.qty=Math.round((x.qty+s.qty)*1000)/1000});
+ if(dbt>0){const d=DB.debts.find(x=>x.amount>0&&x.name.toLowerCase()===(L[0].client||'').trim().toLowerCase());if(d){const a=Math.min(d.amount,dbt);d.amount-=a;d.hist.push({d:new Date().toISOString(),a,t:'x'})}}
  DB.sales=DB.sales.filter(s=>s.order!==o);save();renderAll();
 }
 let sf='all';
@@ -214,7 +237,7 @@ function addInv(){form('📦 Моли нав',[{k:'name',l:'Номи мол *'},
  if(!o.name||!(o.qty>=0)||!(o.cost>=0))return'Номи мол, миқдор ва нархи харидро ворид кунед';
  DB.inventory.push({id:uid(),name:o.name,unit:o.unit,qty:o.qty,cost:o.cost,price:o.price})},'Сохтан')}
 function editInv(id){const x=DB.inventory.find(i=>i.id===id);if(!x)return;
- form('✏️ '+esc(x.name),[{k:'qty',l:'Миқдори нав ('+x.unit+')',t:'number',v:x.qty},{k:'cost',l:'Нархи харид',t:'number',v:x.cost},{k:'price',l:'Нархи фурӯш',t:'number',v:x.price}],o=>{x.qty=o.qty;x.cost=o.cost;x.price=o.price})}
+ form('✏️ Таҳрири мол',[{k:'name',l:'Ном',v:x.name},{k:'unit',l:'Воҳид',t:'select',o:UN,v:x.unit},{k:'qty',l:'Миқдор',t:'number',v:x.qty},{k:'cost',l:'Нархи харид',t:'number',v:x.cost},{k:'price',l:'Нархи фурӯш',t:'number',v:x.price}],o=>{if(!o.name)return'Номро ворид кунед';if(!(o.qty>=0)||!(o.cost>=0))return'Миқдор ва нарх нодуруст аст';x.name=o.name;x.unit=o.unit;x.qty=o.qty;x.cost=o.cost;x.price=o.price})}
 function delInv(id){if(confirm('Ин молро аз анбор нест кунед?')){DB.inventory=DB.inventory.filter(i=>i.id!==id);save();renderAll()}}
 function rInv(){
  $('i').innerHTML='<button class="b" style="margin:0 0 10px" onclick="addInv()">➕ Моли нав</button><div class="cd"><div class="r"><i>Намуди мол</i><b>'+DB.inventory.length+'</b></div><div class="r"><i>Арзиши анбор</i><b>'+fmt(sum(DB.inventory,x=>x.qty*x.cost))+' TJS</b></div></div>'+
@@ -227,7 +250,7 @@ function buySup(id){const s=DB.suppliers.find(x=>x.id===id);if(!s)return;
  if(!o.name||!(o.qty>0)||!(o.cost>=0))return'Номи мол, миқдор ва нархро ворид кунед';
  const tot=o.qty*o.cost;if(o.paid>tot)return'Пардохт аз ҳисоб зиёд аст';
  let x=DB.inventory.find(i=>i.name.toLowerCase()===o.name.toLowerCase());
- if(x){x.qty+=o.qty;x.cost=o.cost;if(o.price)x.price=o.price}else DB.inventory.push({id:uid(),name:o.name,unit:o.unit,qty:o.qty,cost:o.cost,price:o.price});
+ if(x){x.qty=Math.round((x.qty+o.qty)*1000)/1000;x.cost=o.cost;if(o.price)x.price=o.price}else DB.inventory.push({id:uid(),name:o.name,unit:o.unit,qty:o.qty,cost:o.cost,price:o.price});
  s.debt+=tot-o.paid;(s.hist=s.hist||[]).push({d:new Date().toISOString(),n:o.name,q:o.qty,a:tot,p:o.paid})},'Сабт кардан')}
 function paySup(id){const s=DB.suppliers.find(x=>x.id===id);if(!s)return;
  form('💸 Пул ба '+esc(s.name),[{k:'a',l:'Қарз: '+fmt(s.debt)+' TJS. Чанд додед?',t:'number'}],o=>{if(!(o.a>0))return'Суммаро ворид кунед';if(o.a>s.debt)return'Аз қарз зиёд аст';s.debt-=o.a;(s.hist=s.hist||[]).push({d:new Date().toISOString(),a:-o.a})})}
@@ -242,11 +265,11 @@ function addDebt(){form('💳 Қарзи нав',[{k:'name',l:'Номи мизо
 function payDebt(id){const d=DB.debts.find(x=>x.id===id);if(!d)return;
  form('💵 '+esc(d.name),[{k:'a',l:'Қарз: '+fmt(d.amount)+' TJS. Чанд гирифтед?',t:'number'}],o=>{if(!(o.a>0))return'Суммаро ворид кунед';if(o.a>d.amount)return'Аз қарз зиёд аст';d.amount-=o.a;d.hist.push({d:new Date().toISOString(),a:o.a,t:'-'})})}
 function histDebt(id){const d=DB.debts.find(x=>x.id===id);if(!d)return;
- showM('<h3>📜 '+esc(d.name)+'</h3>'+(d.hist.slice().reverse().map(h=>'<div class="r"><span>'+formatD(h.d)+'</span><b class="'+(h.t==='-'?'pos':'neg')+'">'+(h.t==='-'?'− ':'+ ')+fmt(h.a)+'</b></div>').join(''))+'<button class="b g" onclick="closeM()">Пӯшидан</button>')}
+ showM('<h3>📜 '+esc(d.name)+'</h3>'+(d.hist.slice().reverse().map(h=>'<div class="r"><span>'+formatD(h.d)+'</span><b class="'+(h.t==='+'?'neg':h.t==='-'?'pos':'')+'">'+(h.t==='+'?'+ ':h.t==='-'?'− ':'↩ ')+fmt(h.a)+'</b></div>').join(''))+'<button class="b g" onclick="closeM()">Пӯшидан</button>')}
 function rDebts0(){
  const L=DB.debts.filter(d=>d.amount>0).sort((a,b)=>new Date(a.date)-new Date(b.date));
  $('q').innerHTML='<button class="b" style="margin:0 0 10px" onclick="addDebt()">➕ Қарзи нав</button>'+(L.length?L.map(d=>{const days=Math.floor((Date.now()-new Date(d.date))/864e5);
-  return li(esc(d.name),esc(d.phone||'')+' · <b class="neg">'+fmt(d.amount)+' TJS</b>'+(days>=30?' · <span class="neg">'+days+' рӯз</span>':''),ib('ok','💵',"payDebt('"+d.id+"')")+ib('','📜',"histDebt('"+d.id+"')"))}).join(''):'<div class="em">Қарздор нест 👍</div>');
+  return li(esc(d.name),esc(d.phone||'')+' · <b class="neg">'+fmt(d.amount)+' TJS</b>'+(days>=30?' · <span class="neg">'+days+' рӯз</span>':''),ib('ok','💵',"payDebt('"+d.id+"')")+ib('','📜',"histDebt('"+d.id+"')")+ib('x','🗑️',"delDebt('"+d.id+"')"))}).join(''):'<div class="em">Қарздор нест 👍</div>');
 }
 /* ===== ХАРОЧОТ ===== */
 function addExp(){form('💰 Харочоти нав',[{k:'type',l:'Навъ',t:'select',o:[['маош','📌 Маош'],['обед','🍽️ Обед'],['нақл','🚗 Нақл'],['электро','💡 Электро'],['коммуналӣ','🏠 Коммуналӣ'],['магоза','🏪 Магоза'],['дигар','📝 Дигар']]},{k:'amount',l:'Сумма (TJS) *',t:'number'},{k:'desc',l:'Шарҳ'}],o=>{if(!(o.amount>0))return'Суммаро ворид кунед';DB.expenses.push({id:uid(),type:o.type,amount:o.amount,desc:o.desc,date:new Date().toISOString()})},'Сохтан')}
@@ -318,7 +341,7 @@ function openRep(){const ms=new Set([ymd(new Date()).slice(0,7)]);DB.sales.conca
  showM('<h3>📊 Ҳисоботи моҳона</h3><select id="rm" onchange="rRep()">'+[...ms].sort().reverse().map(m=>'<option>'+m+'</option>').join('')+'</select><div id="rb" style="margin-top:10px"></div><button class="b" onclick="shareRep()">📤 Фиристодан (матн)</button><button class="b g" onclick="closeM()">Пӯшидан</button>');rRep()}
 function repData(){const m=$('rm').value,inM=d=>ymd(d).slice(0,7)===m,S=DB.sales.filter(s=>inM(s.date)),E=DB.expenses.filter(e=>inM(e.date));
  const rev=sum(S,s=>s.qty*s.price),cogs=sum(S,s=>s.qty*s.cost),exp=sum(E,e=>e.amount),cat={};E.forEach(e=>cat[e.type]=(cat[e.type]||0)+e.amount);
- let dn=0,dp=0,pb=0,pp=0,bon=0;DB.debts.forEach(d=>d.hist.forEach(h=>{if(inM(h.d)){h.t==='-'?dp+=h.a:dn+=h.a}}));
+ let dn=0,dp=0,pb=0,pp=0,bon=0;DB.debts.forEach(d=>d.hist.forEach(h=>{if(inM(h.d)){if(h.t==='-')dp+=h.a;else if(h.t==='+')dn+=h.a;else dn-=h.a}}));
  DB.suppliers.forEach(s=>(s.hist||[]).forEach(h=>{if(inM(h.d)){if(h.n)pb+=h.a;else pp-=h.a}}));
  const od={};S.forEach(s=>{if(s.client){const v=vipOf(s.client);if(v)bon+=s.qty*s.price*v.rate/100}});
  return{m,rev,cogs,exp,cat,dn,dp,pb,pp,bon,gp:rev-cogs,np:rev-cogs-exp}}
@@ -326,6 +349,7 @@ function rRep(){const d=repData(),R=(a,b,c)=>'<div class="r"><i>'+a+'</i><b clas
  $('rb').innerHTML='<div class="cd">'+R('Фуруш',d.rev)+R('Нархи харид (COGS)',d.cogs)+R('Фоидаи умумӣ',d.gp,'pos')+R('Харочот',d.exp,'neg')+R('Фоидаи софи моҳ',d.np,d.np>=0?'pos':'neg')+'</div><div class="cd"><h4>💰 Харочот аз рӯи навъ</h4>'+(Object.keys(d.cat).map(k=>R(esc(k),d.cat[k])).join('')||'<div class="em">Нест</div>')+'</div><div class="cd">'+R('Қарзи нави мизоҷон',d.dn,'neg')+R('Қарзи гирифташуда',d.dp,'pos')+R('Харид аз молрасон',d.pb)+R('Пардохт ба молрасон',d.pp)+R('Бонуси VIP (ҳисоб)',d.bon)+'</div>'}
 function shareRep(){const d=repData(),t='📊 КУЛБА — '+d.m+'\nФуруш: '+fmt(d.rev)+'\nХарид: '+fmt(d.cogs)+'\nФоидаи умумӣ: '+fmt(d.gp)+'\nХарочот: '+fmt(d.exp)+'\nФоидаи соф: '+fmt(d.np)+'\nҚарзи нав: '+fmt(d.dn)+' | гирифташуда: '+fmt(d.dp)+'\nХарид аз молрасон: '+fmt(d.pb)+' | пардохт: '+fmt(d.pp);
  if(navigator.share)navigator.share({text:t}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(t).then(()=>toast('✅ Нусха шуд'))}
+function delDebt(id){const d=DB.debts.find(x=>x.id===id);if(!d)return;if(!confirm('Қарзи '+fmt(d.amount)+' TJS-и «'+d.name+'»-ро хориҷ кунед?'))return;d.hist.push({d:new Date().toISOString(),a:d.amount,t:'x'});d.amount=0;save();renderAll()}
 function renderAll(){rDash();rSales();rInv();rSup();rDebts();rExp()}
 /* ===== ТАНЗИМОТ ===== */
 function openSet(){showM('<h3>⚙️ Танзимот</h3><div class="cd"><div class="r"><i>Фуруш (сабтҳо)</i><b>'+DB.sales.length+'</b></div><div class="r"><i>Мол</i><b>'+DB.inventory.length+'</b></div><div class="r"><i>Ҳолати захира</i><b id="ind" style="font-size:12px"></b></div></div><button class="b g" onclick="backup()">💾 Резервӣ JSON</button><label style="margin-top:12px">📂 Баргардонидан аз JSON</label><input type="file" accept=".json,application/json" onchange="restore(event)"><p style="font-size:12px;color:#999;margin-top:10px">Ҳар ҳафта як бор «Резервӣ JSON» гиред ва ба Telegram фиристед.</p><button class="b g" onclick="closeM()">Пӯшидан</button>');ind()}
@@ -334,4 +358,5 @@ function restore(ev){const f=ev.target.files[0];if(!f)return;const r=new FileRea
  r.onload=()=>{try{const d=JSON.parse(r.result);if(!d||typeof d!=='object'||!cnt(d)){toast('Файл холӣ ё нодуруст аст','err');return}
   if(!confirm('Маълумоти ҳозира бо '+cnt(d)+' сабт иваз мешавад. Идома диҳем?'))return;
   idbPut('before-restore',JSON.stringify(DB));Object.keys(DB).forEach(k=>DB[k]=Array.isArray(d[k])?d[k]:[]);last=0;closeM();save();renderAll();toast('✅ Барқарор шуд')}catch(e){toast('Файл хонда нашуд','err')}};r.readAsText(f)}
+(function(){try{const c=document.createElement('canvas');c.width=c.height=180;const x=c.getContext('2d'),g=x.createLinearGradient(0,0,180,180);g.addColorStop(0,'#667eea');g.addColorStop(1,'#764ba2');x.fillStyle=g;x.fillRect(0,0,180,180);x.font='96px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('🏪',90,98);const l=document.createElement('link');l.rel='apple-touch-icon';l.href=c.toDataURL('image/png');document.head.appendChild(l)}catch(e){}})();
 </script></body></html>
