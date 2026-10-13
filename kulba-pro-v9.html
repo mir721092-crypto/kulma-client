@@ -74,6 +74,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 const OWNER='owner@kulba.app',SID=Math.random().toString(36).slice(2);
 const DB={sales:[],inventory:[],suppliers:[],debts:[],expenses:[],vip:[]};
 const $=i=>document.getElementById(i);
+const num=v=>parseFloat(String(v==null?'':v).replace(/\s/g,'').replace(',','.'));
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const fmt=n=>Math.round(n||0).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' ');
 const ymd=d=>{d=new Date(d);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
@@ -175,10 +176,10 @@ const closeM=()=>$('m').classList.remove('on');
 let FC=null;
 function form(title,fs,cb,btn){
  let h='<h3>'+title+'</h3>';
- fs.forEach(f=>{h+='<label>'+f.l+'</label>'+(f.t==='select'?'<select id="f_'+f.k+'">'+f.o.map(o=>'<option value="'+esc(o[0])+'"'+(o[0]===f.v?' selected':'')+'>'+esc(o[1])+'</option>').join('')+'</select>':'<input id="f_'+f.k+'" type="'+(f.t||'text')+'" '+(f.t==='number'?'step="any" inputmode="decimal" ':'')+'value="'+esc(f.v==null?'':f.v)+'">')});
+ fs.forEach(f=>{h+='<label>'+f.l+'</label>'+(f.t==='select'?'<select id="f_'+f.k+'">'+f.o.map(o=>'<option value="'+esc(o[0])+'"'+(o[0]===f.v?' selected':'')+'>'+esc(o[1])+'</option>').join('')+'</select>':'<input id="f_'+f.k+'" type="'+(f.t==='number'?'text':(f.t||'text'))+'" '+(f.t==='number'?'inputmode="decimal" ':'')+'value="'+esc(f.v==null?'':f.v)+'">')});
  showM(h+'<button class="b" onclick="subForm()">💾 '+(btn||'Нигоҳ доштан')+'</button><button class="b g" onclick="closeM()">Бекор кардан</button>');FC={fs,cb};
 }
-function subForm(){const o={};FC.fs.forEach(f=>{const v=$('f_'+f.k).value;o[f.k]=f.t==='number'?(parseFloat(v)||0):v.trim()});const r=FC.cb(o);if(r){toast(r,'err');return}closeM();save();renderAll()}
+function subForm(){const o={};FC.fs.forEach(f=>{const v=$('f_'+f.k).value;o[f.k]=f.t==='number'?(num(v)||0):v.trim()});const r=FC.cb(o);if(r){toast(r,'err');return}closeM();save();renderAll()}
 const li=(t,d,a)=>'<div class="li"><div><div class="t">'+t+'</div><div class="d">'+d+'</div></div><div class="ac">'+a+'</div></div>';
 const ib=(c,i,f)=>'<button class="ib '+c+'" onclick="'+f+'">'+i+'</button>';
 const UN=[['шт','дона (шт)'],['метр','метр'],['м²','м²'],['кг','кг'],['варақ','варақ'],['боғлам','боғлам']];
@@ -187,12 +188,12 @@ let cart=[];
 function openSale(){
  cart=[];sitD=false;const av=DB.inventory.filter(x=>x.qty>0);
  if(!av.length){toast('Аввал дар Анбор мол илова кунед','err');return}
- showM('<h3>🪵 Фуруши нав</h3><label>Мизоҷ</label><input id="sc"><label>Телефон</label><input id="sph" type="tel"><label>Мол</label><select id="sp" onchange="saleSel()">'+av.map(x=>'<option value="'+x.id+'">'+esc(x.name)+' ('+x.qty+' '+x.unit+')</option>').join('')+'</select><label>Миқдор</label><input id="sq" type="number" step="any" inputmode="decimal"><label>Қимат барои як воҳид (TJS)</label><input id="spr" type="number" step="any" inputmode="decimal"><button class="b g" onclick="addCart()">➕ Ба сабад</button><div id="cl" style="margin-top:8px"></div><label>Итог (TJS) — худатон иваз карда метавонед</label><input id="sit" type="number" step="any" inputmode="decimal" oninput="sitD=true"><label>Пардохт</label><select id="spm" onchange="$(\'scw\').style.display=this.value===\'partial\'?\'\':\'none\'"><option value="cash">Нақд — пурра</option><option value="debt">Ҳама ба қарз</option><option value="partial">Қисман — боқимонда ба қарз</option></select><div id="scw" style="display:none"><label>Чанд пул доданд?</label><input id="sca" type="number" step="any" inputmode="decimal"></div><button class="b" onclick="confirmSale()">💾 Тасдиқи фурӯш</button><button class="b g" onclick="closeM()">Бекор кардан</button>');
+ showM('<h3>🪵 Фуруши нав</h3><label>Мизоҷ</label><input id="sc"><label>Телефон</label><input id="sph" type="tel"><label>Мол</label><select id="sp" onchange="saleSel()">'+av.map(x=>'<option value="'+x.id+'">'+esc(x.name)+' ('+x.qty+' '+x.unit+')</option>').join('')+'</select><label>Миқдор</label><input id="sq" type="text" inputmode="decimal"><label>Қимат барои як воҳид (TJS)</label><input id="spr" type="text" inputmode="decimal"><button class="b g" onclick="addCart()">➕ Ба сабад</button><div id="cl" style="margin-top:8px"></div><label>Итог (TJS) — худатон иваз карда метавонед</label><input id="sit" type="text" inputmode="decimal" oninput="sitD=true"><label>Пардохт</label><select id="spm" onchange="$(\'scw\').style.display=this.value===\'partial\'?\'\':\'none\'"><option value="cash">Нақд — пурра</option><option value="debt">Ҳама ба қарз</option><option value="partial">Қисман — боқимонда ба қарз</option></select><div id="scw" style="display:none"><label>Чанд пул доданд?</label><input id="sca" type="text" inputmode="decimal"></div><button class="b" onclick="confirmSale()">💾 Тасдиқи фурӯш</button><button class="b g" onclick="closeM()">Бекор кардан</button>');
  saleSel();
 }
 function saleSel(){const x=DB.inventory.find(i=>i.id===$('sp').value);if(x)$('spr').value=x.price||''}
 function addCart(){
- const x=DB.inventory.find(i=>i.id===$('sp').value),q=parseFloat($('sq').value),p=parseFloat($('spr').value);
+ const x=DB.inventory.find(i=>i.id===$('sp').value),q=num($('sq').value),p=num($('spr').value);
  if(!x||!(q>0)||!(p>=0)||$('spr').value===''){toast('Миқдор ва қиматро ворид кунед','err');return}
  const used=sum(cart.filter(c=>c.inv===x.id),c=>c.qty);
  if(used+q>x.qty){toast('Дар анбор танҳо '+x.qty+' '+x.unit+' ҳаст','err');return}
@@ -203,9 +204,9 @@ function rCart(){sitD=false;$('cl').innerHTML=cart.map((c,i)=>'<div class="r"><s
 function confirmSale(){
  if(!cart.length){toast('Сабад холӣ аст','err');return}
  const raw=sum(cart,c=>c.qty*c.price),itv=$('sit').value;let tot=raw;
- if(itv!==''){const t=parseFloat(itv);if(!(t>=0)){toast('Итогро дуруст ворид кунед','err');return}tot=t}
+ if(itv!==''){const t=num(itv);if(!(t>=0)){toast('Итогро дуруст ворид кунед','err');return}tot=t}
  const m=$('spm').value,name=$('sc').value.trim(),ph=$('sph').value.trim();
- const paid=m==='cash'?tot:m==='debt'?0:Math.min(Math.max(parseFloat($('sca').value)||0,0),tot);
+ const paid=m==='cash'?tot:m==='debt'?0:Math.min(Math.max(num($('sca').value)||0,0),tot);
  const dbt=Math.round((tot-paid)*100)/100;
  if(dbt>0&&!name){toast('Барои қарз номи мизоҷро ворид кунед','err');return}
  for(const c of cart){const x=DB.inventory.find(i=>i.id===c.inv);if(!x||sum(cart.filter(z=>z.inv===c.inv),z=>z.qty)>x.qty){toast('Дар анбор барои «'+c.name+'» кофӣ нест','err');return}}
@@ -229,19 +230,19 @@ function rSales(){
  const g={};L.forEach(s=>(g[s.order]=g[s.order]||[]).push(s));
  const os=Object.keys(g).sort((a,b)=>new Date(g[b][0].date)-new Date(g[a][0].date));
  $('s').innerHTML='<button class="b" style="margin:0 0 10px" onclick="openSale()">➕ Фуруши нав</button><div style="display:flex;gap:8px;margin-bottom:10px"><button class="b g" style="margin:0" onclick="sf=\'all\';rSales()">'+(sf==='all'?'● ':'')+'Ҳама</button><button class="b g" style="margin:0" onclick="sf=\'today\';rSales()">'+(sf==='today'?'● ':'')+'Имрӯз</button></div><div style="font-weight:700;color:#667eea;margin-bottom:8px">Ҷамъ: '+fmt(sum(L,s=>s.qty*s.price))+' TJS</div>'+
- (os.length?os.map(o=>{const a=g[o];return li(a.map(s=>esc(s.name)+' × '+s.qty+' '+s.unit).join('<br>'),(a[0].client?esc(a[0].client)+' · ':'')+formatD(a[0].date)+' · <b>'+fmt(sum(a,s=>s.qty*s.price))+' TJS</b>',ib('','🧾',"receipt('"+o+"')")+ib('x','🗑️',"delSale('"+o+"')"))}).join(''):'<div class="em">Фурӯш нест</div>');
+ (os.length?os.map(o=>{const a=g[o];return li(a.map(s=>esc(s.name)+' × '+s.qty+' '+s.unit).join('<br>'),(a[0].client?esc(a[0].client)+' · ':'')+formatD(a[0].date)+' · <b>'+fmt(sum(a,s=>s.qty*s.price))+' TJS</b>',ib('','🧾',"receipt('"+o+"')")+ib('','↩',"retSale('"+o+"')")+ib('x','🗑️',"delSale('"+o+"')"))}).join(''):'<div class="em">Фурӯш нест</div>');
 }
 const formatD=d=>{d=new Date(d);const p=n=>String(n).padStart(2,'0');return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes())};
 /* ===== АНБОР ===== */
-function addInv(){form('📦 Моли нав',[{k:'name',l:'Номи мол *'},{k:'unit',l:'Воҳид',t:'select',o:UN},{k:'qty',l:'Миқдор *',t:'number'},{k:'cost',l:'Нархи харид (як воҳид) *',t:'number'},{k:'price',l:'Нархи фурӯш',t:'number'}],o=>{
+function addInv(){form('📦 Моли нав',[{k:'name',l:'Номи мол *'},{k:'unit',l:'Воҳид',t:'select',o:UN},{k:'qty',l:'Миқдор *',t:'number'},{k:'cost',l:'Нархи харид (як воҳид) *',t:'number'},{k:'price',l:'Нархи фурӯш',t:'number'},{k:'min',l:'Ҳадди ҳушдор (камтар аз ин — ҳушдор)',t:'number',v:5}],o=>{
  if(!o.name||!(o.qty>=0)||!(o.cost>=0))return'Номи мол, миқдор ва нархи харидро ворид кунед';
- DB.inventory.push({id:uid(),name:o.name,unit:o.unit,qty:o.qty,cost:o.cost,price:o.price})},'Сохтан')}
+ DB.inventory.push({id:uid(),name:o.name,unit:o.unit,qty:o.qty,cost:o.cost,price:o.price,min:o.min})},'Сохтан')}
 function editInv(id){const x=DB.inventory.find(i=>i.id===id);if(!x)return;
- form('✏️ Таҳрири мол',[{k:'name',l:'Ном',v:x.name},{k:'unit',l:'Воҳид',t:'select',o:UN,v:x.unit},{k:'qty',l:'Миқдор',t:'number',v:x.qty},{k:'cost',l:'Нархи харид',t:'number',v:x.cost},{k:'price',l:'Нархи фурӯш',t:'number',v:x.price}],o=>{if(!o.name)return'Номро ворид кунед';if(!(o.qty>=0)||!(o.cost>=0))return'Миқдор ва нарх нодуруст аст';x.name=o.name;x.unit=o.unit;x.qty=o.qty;x.cost=o.cost;x.price=o.price})}
+ form('✏️ Таҳрири мол',[{k:'name',l:'Ном',v:x.name},{k:'unit',l:'Воҳид',t:'select',o:UN,v:x.unit},{k:'qty',l:'Миқдор',t:'number',v:x.qty},{k:'cost',l:'Нархи харид',t:'number',v:x.cost},{k:'price',l:'Нархи фурӯш',t:'number',v:x.price},{k:'min',l:'Ҳадди ҳушдор',t:'number',v:x.min==null?5:x.min}],o=>{if(!o.name)return'Номро ворид кунед';if(!(o.qty>=0)||!(o.cost>=0))return'Миқдор ва нарх нодуруст аст';x.name=o.name;x.unit=o.unit;x.qty=o.qty;x.cost=o.cost;x.price=o.price;x.min=o.min})}
 function delInv(id){if(confirm('Ин молро аз анбор нест кунед?')){DB.inventory=DB.inventory.filter(i=>i.id!==id);save();renderAll()}}
 function rInv(){
  $('i').innerHTML='<button class="b" style="margin:0 0 10px" onclick="addInv()">➕ Моли нав</button><div class="cd"><div class="r"><i>Намуди мол</i><b>'+DB.inventory.length+'</b></div><div class="r"><i>Арзиши анбор</i><b>'+fmt(sum(DB.inventory,x=>x.qty*x.cost))+' TJS</b></div></div>'+
- (DB.inventory.length?DB.inventory.map(x=>li(esc(x.name),'<b class="'+(x.qty<=0?'neg':'')+'">'+x.qty+' '+x.unit+'</b> · харид '+fmt(x.cost)+' · фурӯш '+fmt(x.price),ib('','✏️',"editInv('"+x.id+"')")+ib('x','🗑️',"delInv('"+x.id+"')"))).join(''):'<div class="em">Анбор холӣ аст</div>');
+ (DB.inventory.length?DB.inventory.map(x=>li(esc(x.name),'<b class="'+(x.qty<=(x.min==null?5:x.min)?'neg':'')+'">'+x.qty+' '+x.unit+'</b> · харид '+fmt(x.cost)+' · фурӯш '+fmt(x.price),ib('','✏️',"editInv('"+x.id+"')")+ib('x','🗑️',"delInv('"+x.id+"')"))).join(''):'<div class="em">Анбор холӣ аст</div>');
 }
 /* ===== МОЛРАСОН ===== */
 function addSup(){form('🚚 Молрасони нав',[{k:'name',l:'Ном *'},{k:'phone',l:'Телефон',t:'tel'},{k:'debt',l:'Қарзи ҷорӣ (TJS)',t:'number'}],o=>{if(!o.name)return'Номро ворид кунед';DB.suppliers.push({id:uid(),name:o.name,phone:o.phone,debt:o.debt})},'Сохтан')}
@@ -261,15 +262,15 @@ function rSup(){
  $('p').innerHTML='<button class="b" style="margin:0 0 10px" onclick="addSup()">➕ Молрасони нав</button>'+(DB.suppliers.length?DB.suppliers.map(s=>li(esc(s.name),esc(s.phone||'')+' · қарз: <b class="'+(s.debt>0?'neg':'')+'">'+fmt(s.debt)+' TJS</b>',ib('ok','🛒',"buySup('"+s.id+"')")+ib('','💸',"paySup('"+s.id+"')")+ib('','📜',"histSup('"+s.id+"')")+ib('x','🗑️',"delSup('"+s.id+"')"))).join(''):'<div class="em">Молрасон нест</div>');
 }
 /* ===== ҚАРЗҲО ===== */
-function addDebt(){form('💳 Қарзи нав',[{k:'name',l:'Номи мизоҷ *'},{k:'phone',l:'Телефон',t:'tel'},{k:'a',l:'Сумма (TJS) *',t:'number'}],o=>{if(!o.name||!(o.a>0))return'Ном ва суммаро ворид кунед';const n=new Date().toISOString();DB.debts.push({id:uid(),name:o.name,phone:o.phone,amount:o.a,date:n,hist:[{d:n,a:o.a,t:'+'}]})},'Сохтан')}
+function addDebt(){form('💳 Қарзи нав',[{k:'name',l:'Номи мизоҷ *'},{k:'phone',l:'Телефон',t:'tel'},{k:'a',l:'Сумма (TJS) *',t:'number'}],o=>{if(!o.name||!(o.a>0))return'Ном ва суммаро ворид кунед';const n=new Date().toISOString(),d=DB.debts.find(x=>x.amount>0&&x.name.toLowerCase()===o.name.toLowerCase());if(d){d.amount=Math.round((d.amount+o.a)*100)/100;if(o.phone&&!d.phone)d.phone=o.phone;d.hist.push({d:n,a:o.a,t:'+'})}else DB.debts.push({id:uid(),name:o.name,phone:o.phone,amount:o.a,date:n,hist:[{d:n,a:o.a,t:'+'}]})},'Сохтан')}
 function payDebt(id){const d=DB.debts.find(x=>x.id===id);if(!d)return;
  form('💵 '+esc(d.name),[{k:'a',l:'Қарз: '+fmt(d.amount)+' TJS. Чанд гирифтед?',t:'number'}],o=>{if(!(o.a>0))return'Суммаро ворид кунед';if(o.a>d.amount)return'Аз қарз зиёд аст';d.amount-=o.a;d.hist.push({d:new Date().toISOString(),a:o.a,t:'-'})})}
 function histDebt(id){const d=DB.debts.find(x=>x.id===id);if(!d)return;
- showM('<h3>📜 '+esc(d.name)+'</h3>'+(d.hist.slice().reverse().map(h=>'<div class="r"><span>'+formatD(h.d)+'</span><b class="'+(h.t==='+'?'neg':h.t==='-'?'pos':'')+'">'+(h.t==='+'?'+ ':h.t==='-'?'− ':'↩ ')+fmt(h.a)+'</b></div>').join(''))+'<button class="b g" onclick="closeM()">Пӯшидан</button>')}
+ showM('<h3>📜 '+esc(d.name)+'</h3>'+(d.hist.slice().reverse().map(h=>'<div class="r"><span>'+formatD(h.d)+(h.n?'<br><i>'+esc(h.n)+'</i>':'')+'</span><b class="'+(h.t==='+'?'neg':h.t==='-'?'pos':'')+'">'+(h.t==='+'?'+ ':h.t==='-'?'− ':'↩ ')+fmt(h.a)+'</b></div>').join(''))+'<button class="b g" onclick="closeM()">Пӯшидан</button>')}
 function rDebts0(){
  const L=DB.debts.filter(d=>d.amount>0).sort((a,b)=>new Date(a.date)-new Date(b.date));
  $('q').innerHTML='<button class="b" style="margin:0 0 10px" onclick="addDebt()">➕ Қарзи нав</button>'+(L.length?L.map(d=>{const days=Math.floor((Date.now()-new Date(d.date))/864e5);
-  return li(esc(d.name),esc(d.phone||'')+' · <b class="neg">'+fmt(d.amount)+' TJS</b>'+(days>=30?' · <span class="neg">'+days+' рӯз</span>':''),ib('ok','💵',"payDebt('"+d.id+"')")+ib('','📜',"histDebt('"+d.id+"')")+ib('x','🗑️',"delDebt('"+d.id+"')"))}).join(''):'<div class="em">Қарздор нест 👍</div>');
+  return li(esc(d.name),esc(d.phone||'')+' · <b class="neg">'+fmt(d.amount)+' TJS</b>'+(days>=30?' · <span class="neg">'+days+' рӯз</span>':''),ib('','➕',"moreDebt('"+d.id+"')")+ib('ok','💵',"payDebt('"+d.id+"')")+ib('','📜',"histDebt('"+d.id+"')")+ib('ok','💬',"waDebt('"+d.id+"')")+ib('x','🗑️',"delDebt('"+d.id+"')"))}).join(''):'<div class="em">Қарздор нест 👍</div>');
 }
 /* ===== ХАРОЧОТ ===== */
 function addExp(){form('💰 Харочоти нав',[{k:'type',l:'Навъ',t:'select',o:[['маош','📌 Маош'],['обед','🍽️ Обед'],['нақл','🚗 Нақл'],['электро','💡 Электро'],['коммуналӣ','🏠 Коммуналӣ'],['магоза','🏪 Магоза'],['дигар','📝 Дигар']]},{k:'amount',l:'Сумма (TJS) *',t:'number'},{k:'desc',l:'Шарҳ'}],o=>{if(!(o.amount>0))return'Суммаро ворид кунед';DB.expenses.push({id:uid(),type:o.type,amount:o.amount,desc:o.desc,date:new Date().toISOString()})},'Сохтан')}
@@ -286,8 +287,8 @@ function rDash(){
  const days=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(d)}
  const v=days.map(d=>sum(DB.sales.filter(s=>ymd(s.date)===ymd(d)),A)),mx=Math.max(...v,1);
  const old=DB.debts.filter(d=>d.amount>0&&Date.now()-new Date(d.date)>=30*864e5);
- $('d').innerHTML='<div class="cd"><h4>⚡ Амалҳои зуд</h4><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="b g" style="margin:0" onclick="openSale()">🪵 Фуруши нав</button><button class="b g" style="margin:0" onclick="addExp()">💰 Харочот</button></div></div>'+
- (old.length?'<div class="cd" style="border-color:#ef5350"><h4>🔴 Қарзҳои дертар (30+ рӯз)</h4>'+old.map(d=>'<div class="r"><span>'+esc(d.name)+'</span><b class="neg">'+fmt(d.amount)+'</b></div>').join('')+'</div>':'')+
+ $('d').innerHTML='<div class="cd"><h4>⚡ Амалҳои зуд</h4><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="b g" style="margin:0" onclick="openSale()">🪵 Фуруши нав</button><button class="b g" style="margin:0" onclick="addExp()">💰 Харочот</button><button class="b g" style="margin:0" onclick="kassa()">🧮 Бастани рӯз</button><button class="b g" style="margin:0" onclick="calc()">📐 Ҳисобкунак</button></div></div>'+
+ lowCard()+(old.length?'<div class="cd" style="border-color:#ef5350"><h4>🔴 Қарзҳои дертар (30+ рӯз)</h4>'+old.map(d=>'<div class="r"><span>'+esc(d.name)+'</span><b class="neg">'+fmt(d.amount)+'</b></div>').join('')+'</div>':'')+
  '<div class="cd"><h4>📈 Имрӯз</h4><div class="r"><i>Фуруш</i><b>'+fmt(sum(ts,A))+' TJS</b></div><div class="r"><i>Харочот</i><b class="neg">'+fmt(te)+' TJS</b></div><div class="r"><i>Фоидаи холис</i><b class="'+(tp>=0?'pos':'neg')+'">'+fmt(tp)+' TJS</b></div></div>'+
  '<div class="cd"><h4>💼 Моҳ</h4><div class="r"><i>Фуруш</i><b>'+fmt(sum(ms,A))+' TJS</b></div><div class="r"><i>Харочот</i><b class="neg">'+fmt(me)+' TJS</b></div><div class="r"><i>Фоидаи софи моҳ</i><b style="color:#667eea">'+fmt(sum(ms,P)-me)+' TJS</b></div></div>'+
  '<div class="cd" style="border-left:4px solid #ef5350"><h4>💵 Мизоҷон ба мо қарздоранд</h4><b class="neg" style="font-size:18px">'+fmt(cd)+' TJS</b></div>'+
@@ -314,7 +315,7 @@ function rCl(){const q=($('csr').value||'').toLowerCase(),L=clients().filter(c=>
 function acct(e){const k=decodeURIComponent(e),c=clients().find(x=>x.k===k);if(!c)return;const v=vipOf(c.name);
  const g={};cSales(k).forEach(s=>(g[s.order]=g[s.order]||[]).push(s));
  const os=Object.keys(g).sort((a,b)=>new Date(g[b][0].date)-new Date(g[a][0].date));
- showM('<h3>'+(v?'⭐ ':'')+esc(c.name)+'</h3><div class="cd"><div class="r"><i>Телефон</i><b>'+esc(c.phone||'—')+'</b></div><div class="r"><i>Ҷамъи харид</i><b>'+fmt(c.spent)+' TJS</b></div><div class="r"><i>Шумораи харид</i><b>'+c.orders.size+'</b></div><div class="r"><i>Қарз</i><b class="'+(c.debt>0?'neg':'')+'">'+fmt(c.debt)+' TJS</b></div>'+(v?'<div class="r"><i>Бонуси VIP ('+v.rate+'%)</i><b class="pos">'+fmt(bonusFor(k))+' TJS</b></div>':'')+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="b g" style="margin:0" onclick="vipForm(\''+e+'\')">'+(v?'⭐ Тағири VIP':'☆ VIP кардан')+'</button><button class="b g" style="margin:0" onclick="clientLink(\''+e+'\')">🔗 Пайванд</button></div><div style="margin-top:12px">'+(os.map(o=>{const a=g[o],t=sum(a,s=>s.qty*s.price);return li(formatD(a[0].date)+' — <b>'+fmt(t)+'</b>',a.map(s=>esc(s.name)+' × '+s.qty).join(', ')+(v?'<br>бонус: '+fmt(t*v.rate/100):''),ib('','🧾',"receipt('"+o+"')"))}).join('')||'<div class="em">Харид нест</div>')+'</div><button class="b g" onclick="closeM()">Пӯшидан</button>')}
+ showM('<h3>'+(v?'⭐ ':'')+esc(c.name)+'</h3><div class="cd"><div class="r"><i>Телефон</i><b>'+esc(c.phone||'—')+'</b></div><div class="r"><i>Ҷамъи харид</i><b>'+fmt(c.spent)+' TJS</b></div><div class="r"><i>Шумораи харид</i><b>'+c.orders.size+'</b></div><div class="r"><i>Қарз</i><b class="'+(c.debt>0?'neg':'')+'">'+fmt(c.debt)+' TJS</b></div>'+(v?'<div class="r"><i>Бонуси VIP ('+v.rate+'%)</i><b class="pos">'+fmt(bonusFor(k))+' TJS</b></div>':'')+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="b g" style="margin:0" onclick="vipForm(\''+e+'\')">'+(v?'⭐ Тағири VIP':'☆ VIP кардан')+'</button><button class="b g" style="margin:0" onclick="clientLink(\''+e+'\')">🔗 Пайванд</button><button class="b g" style="margin:0" onclick="addDebtFor(\''+e+'\')">➕ Қарз илова</button>'+(c.debt>0?'<button class="b g" style="margin:0" onclick="payDebtFor(\''+e+'\')">💵 Қарз гирифтан</button>':'')+'</div><div style="margin-top:12px">'+(os.map(o=>{const a=g[o],t=sum(a,s=>s.qty*s.price);return li(formatD(a[0].date)+' — <b>'+fmt(t)+'</b>',a.map(s=>esc(s.name)+' × '+s.qty).join(', ')+(v?'<br>бонус: '+fmt(t*v.rate/100):''),ib('','🧾',"receipt('"+o+"')"))}).join('')||'<div class="em">Харид нест</div>')+'</div><button class="b g" onclick="closeM()">Пӯшидан</button>')}
 function vipForm(e){const k=decodeURIComponent(e),c=clients().find(x=>x.k===k);if(!c)return;const v=vipOf(c.name);
  form('⭐ VIP: '+esc(c.name),[{k:'on',l:'Ҳолат',t:'select',o:[['1','⭐ VIP фаъол'],['0','☆ VIP нест']],v:v?'1':'0'},{k:'r',l:'Фоизи бонус (%) — худатон мемонед',t:'number',v:v?v.rate:0.2}],o=>{
  DB.vip=DB.vip.filter(x=>x.k!==k);if(o.on==='1'){if(!(o.r>=0))return'Фоизро ворид кунед';DB.vip.push({k,name:c.name,rate:o.r})}})}
@@ -343,16 +344,55 @@ function repData(){const m=$('rm').value,inM=d=>ymd(d).slice(0,7)===m,S=DB.sales
  const rev=sum(S,s=>s.qty*s.price),cogs=sum(S,s=>s.qty*s.cost),exp=sum(E,e=>e.amount),cat={};E.forEach(e=>cat[e.type]=(cat[e.type]||0)+e.amount);
  let dn=0,dp=0,pb=0,pp=0,bon=0;DB.debts.forEach(d=>d.hist.forEach(h=>{if(inM(h.d)){if(h.t==='-')dp+=h.a;else if(h.t==='+')dn+=h.a;else dn-=h.a}}));
  DB.suppliers.forEach(s=>(s.hist||[]).forEach(h=>{if(inM(h.d)){if(h.n)pb+=h.a;else pp-=h.a}}));
- const od={};S.forEach(s=>{if(s.client){const v=vipOf(s.client);if(v)bon+=s.qty*s.price*v.rate/100}});
- return{m,rev,cogs,exp,cat,dn,dp,pb,pp,bon,gp:rev-cogs,np:rev-cogs-exp}}
+ const bp={};S.forEach(s=>{const p=bp[s.name]||(bp[s.name]={r:0,p:0});p.r+=s.qty*s.price;p.p+=s.qty*(s.price-s.cost)});const od={};S.forEach(s=>{if(s.client){const v=vipOf(s.client);if(v)bon+=s.qty*s.price*v.rate/100}});
+ return{m,rev,cogs,exp,cat,dn,dp,pb,pp,bon,bp,gp:rev-cogs,np:rev-cogs-exp}}
 function rRep(){const d=repData(),R=(a,b,c)=>'<div class="r"><i>'+a+'</i><b class="'+(c||'')+'">'+fmt(b)+' TJS</b></div>';
- $('rb').innerHTML='<div class="cd">'+R('Фуруш',d.rev)+R('Нархи харид (COGS)',d.cogs)+R('Фоидаи умумӣ',d.gp,'pos')+R('Харочот',d.exp,'neg')+R('Фоидаи софи моҳ',d.np,d.np>=0?'pos':'neg')+'</div><div class="cd"><h4>💰 Харочот аз рӯи навъ</h4>'+(Object.keys(d.cat).map(k=>R(esc(k),d.cat[k])).join('')||'<div class="em">Нест</div>')+'</div><div class="cd">'+R('Қарзи нави мизоҷон',d.dn,'neg')+R('Қарзи гирифташуда',d.dp,'pos')+R('Харид аз молрасон',d.pb)+R('Пардохт ба молрасон',d.pp)+R('Бонуси VIP (ҳисоб)',d.bon)+'</div>'}
+ $('rb').innerHTML='<div class="cd">'+R('Фуруш',d.rev)+R('Нархи харид (COGS)',d.cogs)+R('Фоидаи умумӣ',d.gp,'pos')+R('Харочот',d.exp,'neg')+R('Фоидаи софи моҳ',d.np,d.np>=0?'pos':'neg')+'</div><div class="cd"><h4>💰 Харочот аз рӯи навъ</h4>'+(Object.keys(d.cat).map(k=>R(esc(k),d.cat[k])).join('')||'<div class="em">Нест</div>')+'</div><div class="cd">'+R('Қарзи нави мизоҷон',d.dn,'neg')+R('Қарзи гирифташуда',d.dp,'pos')+R('Харид аз молрасон',d.pb)+R('Пардохт ба молрасон',d.pp)+R('Бонуси VIP (ҳисоб)',d.bon)+'</div><div class="cd"><h4>🏆 Фоида аз рӯи мол</h4>'+(Object.keys(d.bp).sort((a,b)=>d.bp[b].p-d.bp[a].p).map(k=>'<div class="r"><span>'+esc(k)+'</span><b class="pos">'+fmt(d.bp[k].p)+'</b></div>').join('')||'<div class="em">Нест</div>')+'</div>'}
 function shareRep(){const d=repData(),t='📊 КУЛБА — '+d.m+'\nФуруш: '+fmt(d.rev)+'\nХарид: '+fmt(d.cogs)+'\nФоидаи умумӣ: '+fmt(d.gp)+'\nХарочот: '+fmt(d.exp)+'\nФоидаи соф: '+fmt(d.np)+'\nҚарзи нав: '+fmt(d.dn)+' | гирифташуда: '+fmt(d.dp)+'\nХарид аз молрасон: '+fmt(d.pb)+' | пардохт: '+fmt(d.pp);
  if(navigator.share)navigator.share({text:t}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(t).then(()=>toast('✅ Нусха шуд'))}
 function delDebt(id){const d=DB.debts.find(x=>x.id===id);if(!d)return;if(!confirm('Қарзи '+fmt(d.amount)+' TJS-и «'+d.name+'»-ро хориҷ кунед?'))return;d.hist.push({d:new Date().toISOString(),a:d.amount,t:'x'});d.amount=0;save();renderAll()}
+
+/* ===== ҲУШДОР, WHATSAPP, ВОЗВРАТ, КАССА, ҲИСОБКУНАК, EXCEL ===== */
+function lowCard(){const L=DB.inventory.filter(x=>x.qty<=(x.min==null?5:x.min));return L.length?'<div class="cd" style="border-color:#ff9800"><h4>⚠️ Мол кам аст</h4>'+L.map(x=>'<div class="r"><span>'+esc(x.name)+'</span><b class="neg">'+x.qty+' '+esc(x.unit)+'</b></div>').join('')+'</div>':''}
+function waDebt(id){const d=DB.debts.find(x=>x.id===id);if(!d)return;let n=(d.phone||'').replace(/\D/g,'');if(!n){toast('Рақами телефон нест','err');return}if(n.length===9)n='992'+n;
+ window.open('https://wa.me/'+n+'?text='+encodeURIComponent('Салом, '+d.name+'! Қарзи шумо ба мағозаи КУЛБА '+fmt(d.amount)+' TJS аст. Лутфан дар муддати наздик пардохт кунед. Ташаккур!'),'_blank')}
+function retSale(o){const L=DB.sales.filter(s=>s.order===o);if(!L.length)return;
+ form('↩ Возврат',[{k:'id',l:'Мол',t:'select',o:L.map(s=>[s.id,s.name+' × '+s.qty+' '+s.unit])},{k:'q',l:'Чанд баргашт?',t:'number'}],r=>{
+  const s=L.find(x=>x.id===r.id);if(!s||!(r.q>0)||r.q>s.qty)return'Миқдор нодуруст аст';
+  const x=DB.inventory.find(i=>i.id===s.inv)||DB.inventory.find(i=>i.name===s.name);if(x)x.qty=Math.round((x.qty+r.q)*1000)/1000;
+  let left=r.q*s.price;s.qty=Math.round((s.qty-r.q)*1000)/1000;if(s.qty<=0)DB.sales=DB.sales.filter(z=>z.id!==s.id);
+  const d=DB.debts.find(z=>z.amount>0&&z.name.toLowerCase()===(s.client||'').trim().toLowerCase());
+  if(d){const a=Math.min(d.amount,left);d.amount-=a;left-=a;d.hist.push({d:new Date().toISOString(),a,t:'x'})}
+  toast(left>0?'↩ Ба мизоҷ баргардонед: '+fmt(left)+' TJS':'↩ Возврат сабт шуд')},'Сабт кардан')}
+let kexp=0;
+function kassa(){const t=ymd(new Date()),I=d=>ymd(d)===t,S=DB.sales.filter(s=>I(s.date));
+ const cash=sum(S,s=>s.qty*s.price)-sum(S,s=>s.dbt||0);let dp=0,sp=0;
+ DB.debts.forEach(d=>d.hist.forEach(h=>{if(I(h.d)&&h.t==='-')dp+=h.a}));
+ DB.suppliers.forEach(s=>(s.hist||[]).forEach(h=>{if(I(h.d))sp+=h.n?(h.p||0):-h.a}));
+ const ex=sum(DB.expenses.filter(e=>I(e.date)),e=>e.amount);kexp=cash+dp-ex-sp;
+ const R=(a,b,c)=>'<div class="r"><i>'+a+'</i><b class="'+(c||'')+'">'+fmt(b)+' TJS</b></div>';
+ showM('<h3>🧮 Бастани рӯз</h3><div class="cd">'+R('Фуруши нақд',cash)+R('Қарзи гирифташуда',dp,'pos')+R('Харочот',ex,'neg')+R('Пардохт ба молрасон',sp,'neg')+R('Бояд дар қуттӣ бошад',kexp)+'</div><label>Дар қуттӣ воқеан чанд пул ҳаст?</label><input id="ka" type="text" inputmode="decimal" oninput="kaCalc()"><div id="kr" style="margin:10px 0;font-weight:700"></div><button class="b g" onclick="closeM()">Пӯшидан</button>')}
+function kaCalc(){const v=num($('ka').value);if(isNaN(v)){$('kr').textContent='';return}const f=Math.round((v-kexp)*100)/100;
+ $('kr').innerHTML=f===0?'<span class="pos">✅ Ҳама дуруст</span>':f>0?'<span class="pos">Зиёдатӣ: '+fmt(f)+' TJS</span>':'<span class="neg">Камбуд: '+fmt(-f)+' TJS</span>'}
+let cmode='w';
+function calc(){cmode='w';showM('<h3>📐 Ҳисобкунак</h3><div style="display:flex;gap:8px"><button class="b g" id="cmw" style="margin:0" onclick="cmode=\'w\';calcU()">🧱 Девор</button><button class="b g" id="cmf" style="margin:0" onclick="cmode=\'f\';calcU()">🪵 Пол / шифт</button></div><label>Дарозии хона (м)</label><input id="cl1" type="text" inputmode="decimal" placeholder="4" oninput="calcR()"><label>Бари хона (м)</label><input id="cl2" type="text" inputmode="decimal" placeholder="5" oninput="calcR()"><div id="chw"><label>Баландии девор (м)</label><input id="cl5" type="text" inputmode="decimal" placeholder="2.5" oninput="calcR()"></div><label>Дару тиреза — кам кардан (м²), ихтиёрӣ</label><input id="cl6" type="text" inputmode="decimal" oninput="calcR()"><label>Бари як дона (см)</label><input id="cl3" type="text" inputmode="decimal" placeholder="9" oninput="calcR()"><label>Дарозии як дона (м)</label><input id="cl7" type="text" inputmode="decimal" placeholder="2.5" oninput="calcR()"><label>Изофа (%)</label><input id="cl4" type="text" inputmode="decimal" value="0" oninput="calcR()"><div id="cr" class="cd" style="margin-top:10px"></div><button class="b g" onclick="closeM()">Пӯшидан</button>');calcU()}
+function calcU(){$('chw').style.display=cmode==='w'?'':'none';$('cmw').textContent=(cmode==='w'?'● ':'')+'🧱 Девор';$('cmf').textContent=(cmode==='f'?'● ':'')+'🪵 Пол / шифт';calcR()}
+function calcR(){const g=i=>num($(i).value)||0,L=g('cl1'),W=g('cl2'),H=g('cl5'),sub=g('cl6'),bw=g('cl3')/100,bl=g('cl7'),w=g('cl4'),per=2*(L+W),raw=cmode==='w'?per*H:L*W,area=Math.max(raw-sub,0),pc=bw*bl,pcs=pc>0?Math.ceil(area*(1+w/100)/pc-1e-9):0,r=x=>Math.round(x*100)/100;
+ $('cr').innerHTML=(cmode==='w'?'<div class="r"><i>Давр (4 девор: бар+бар+дароз+дароз)</i><b>'+r(per)+' м</b></div>':'')+'<div class="r"><i>Масоҳат</i><b>'+r(area)+' м²</b></div><div class="r"><i>Масоҳати як дона</i><b>'+(pc>0?r(pc)+' м²':'—')+'</b></div><div class="r"><i>Чанд дона лозим</i><b style="font-size:18px;color:#667eea">'+(pc>0?pcs+' дона':'—')+'</b></div>'}
+function csv(name,rows){const t='\ufeff'+rows.map(r=>r.map(v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"').join(',')).join('\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv;charset=utf-8'}));a.download=name+'-'+ymd(new Date())+'.csv';document.body.appendChild(a);a.click();a.remove()}
+function csvSales(){csv('furush',[['Сана','Мизоҷ','Телефон','Мол','Миқдор','Воҳид','Нарх','Ҷамъ','Фоида']].concat(DB.sales.map(s=>[formatD(s.date),s.client,s.phone,s.name,s.qty,s.unit,Math.round(s.price*100)/100,Math.round(s.qty*s.price*100)/100,Math.round(s.qty*(s.price-s.cost)*100)/100])))}
+function csvInv(){csv('anbor',[['Мол','Воҳид','Миқдор','Нархи харид','Нархи фурӯш','Арзиш']].concat(DB.inventory.map(x=>[x.name,x.unit,x.qty,x.cost,x.price,Math.round(x.qty*x.cost)])))}
+
+function moreDebt(id){const d=DB.debts.find(x=>x.id===id);if(!d)return;
+ form('➕ Қарз илова: '+esc(d.name),[{k:'a',l:'Қарзи ҳозира: '+fmt(d.amount)+' TJS. Чанд илова мекунед?',t:'number'},{k:'n',l:'Шарҳ (ихтиёрӣ)'}],o=>{if(!(o.a>0))return'Суммаро ворид кунед';d.amount=Math.round((d.amount+o.a)*100)/100;d.hist.push({d:new Date().toISOString(),a:o.a,t:'+',n:o.n})})}
+function addDebtFor(e){const k=decodeURIComponent(e),c=clients().find(x=>x.k===k);if(!c)return;
+ form('➕ Қарз: '+esc(c.name),[{k:'a',l:'Сумма (TJS) *',t:'number'},{k:'n',l:'Шарҳ (ихтиёрӣ)'}],o=>{if(!(o.a>0))return'Суммаро ворид кунед';const now=new Date().toISOString();const d=DB.debts.find(x=>x.amount>0&&x.name.toLowerCase()===k);
+  if(d){d.amount=Math.round((d.amount+o.a)*100)/100;d.hist.push({d:now,a:o.a,t:'+',n:o.n})}else DB.debts.push({id:uid(),name:c.name,phone:c.phone,amount:o.a,date:now,hist:[{d:now,a:o.a,t:'+',n:o.n}]})})}
+function payDebtFor(e){const k=decodeURIComponent(e),d=DB.debts.find(x=>x.amount>0&&x.name.toLowerCase()===k);if(d)payDebt(d.id)}
 function renderAll(){rDash();rSales();rInv();rSup();rDebts();rExp()}
 /* ===== ТАНЗИМОТ ===== */
-function openSet(){showM('<h3>⚙️ Танзимот</h3><div class="cd"><div class="r"><i>Фуруш (сабтҳо)</i><b>'+DB.sales.length+'</b></div><div class="r"><i>Мол</i><b>'+DB.inventory.length+'</b></div><div class="r"><i>Ҳолати захира</i><b id="ind" style="font-size:12px"></b></div></div><button class="b g" onclick="backup()">💾 Резервӣ JSON</button><label style="margin-top:12px">📂 Баргардонидан аз JSON</label><input type="file" accept=".json,application/json" onchange="restore(event)"><p style="font-size:12px;color:#999;margin-top:10px">Ҳар ҳафта як бор «Резервӣ JSON» гиред ва ба Telegram фиристед.</p><button class="b g" onclick="closeM()">Пӯшидан</button>');ind()}
+function openSet(){showM('<h3>⚙️ Танзимот</h3><div class="cd"><div class="r"><i>Фуруш (сабтҳо)</i><b>'+DB.sales.length+'</b></div><div class="r"><i>Мол</i><b>'+DB.inventory.length+'</b></div><div class="r"><i>Ҳолати захира</i><b id="ind" style="font-size:12px"></b></div></div><button class="b g" onclick="csvSales()">📊 Excel: фурӯш (CSV)</button><button class="b g" onclick="csvInv()">📊 Excel: анбор (CSV)</button><button class="b g" onclick="backup()">💾 Резервӣ JSON</button><label style="margin-top:12px">📂 Баргардонидан аз JSON</label><input type="file" accept=".json,application/json" onchange="restore(event)"><p style="font-size:12px;color:#999;margin-top:10px">Ҳар ҳафта як бор «Резервӣ JSON» гиред ва ба Telegram фиристед.</p><button class="b g" onclick="closeM()">Пӯшидан</button>');ind()}
 function backup(){const b=new Blob([JSON.stringify(DB)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='kulba-'+ymd(new Date())+'.json';document.body.appendChild(a);a.click();a.remove()}
 function restore(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();
  r.onload=()=>{try{const d=JSON.parse(r.result);if(!d||typeof d!=='object'||!cnt(d)){toast('Файл холӣ ё нодуруст аст','err');return}
